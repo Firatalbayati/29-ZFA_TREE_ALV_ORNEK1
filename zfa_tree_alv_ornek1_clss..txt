@@ -1,0 +1,89 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZFA_TREE_ALV_ORNEK1_CLSS
+*&---------------------------------------------------------------------*
+
+CLASS lcl_event_handler DEFINITION ."FINAL. "TANIM FİNALİ
+  PUBLIC SECTION.
+    " gui_alv_grid icin double click eventini atadik
+    METHODS: handle_node_double_click
+              FOR EVENT node_double_click
+              OF cl_gui_simple_tree
+              IMPORTING node_key.
+
+    METHODS: handle_exp_no_children
+              FOR EVENT expand_no_children
+              OF cl_gui_simple_tree
+              IMPORTING node_key.
+ENDCLASS.
+
+
+CLASS lcl_event_handler IMPLEMENTATION.
+
+  METHOD: handle_exp_no_children.
+
+    DATA : lt_spfli TYPE TABLE OF spfli,
+           ls_spfli LIKE LINE OF lt_spfli,
+           ls_node  TYPE mtreesnode,
+           lt_nodes TYPE TABLE OF mtreesnode.
+
+
+    select * FROM spfli
+          INTO TABLE lt_spfli
+      WHERE carrid = node_key.
+
+    LOOP AT lt_spfli INTO ls_spfli.
+         CLEAR ls_node.
+         CONCATENATE ls_spfli-carrid
+                     ls_spfli-connid
+                     INTO ls_node-node_key
+                     SEPARATED BY gc_separator.
+         ls_node-relatkey = node_key.
+         ls_node-relatship = cl_gui_simple_tree=>relat_last_child.
+         ls_node-text    = ls_spfli-connid.
+
+         APPEND ls_node to lt_nodes.
+    ENDLOOP.
+    " go_spfli_tree
+    " cl_gui_simple_tree
+    " add_nodes
+    CALL METHOD go_spfli_tree->add_nodes
+      EXPORTING
+        table_structure_name           = 'MTREESNODE'
+        node_table                     = lt_nodes
+*      EXCEPTIONS
+*        error_in_node_table            = 1
+*        failed                         = 2
+*        dp_error                       = 3
+*        table_structure_name_not_found = 4
+*        others                         = 5
+            .
+    IF sy-subrc <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+
+
+  ENDMETHOD.
+
+
+
+  METHOD : handle_node_double_click.
+
+    DATA : lv_carrid TYPE spfli-carrid,
+           lv_connid TYPE spfli-connid.
+
+    SPLIT node_key AT gc_separator
+                INTO lv_carrid
+                     lv_connid.
+
+    IF lv_connid IS INITIAL .
+      RETURN.
+    ELSE.
+      SELECT * FROM sflight
+           INTO TABLE gt_sflight
+        WHERE carrid = lv_carrid AND
+              connid = lv_connid.
+      go_sflight_alv->refresh_table_display( ).
+    ENDIF.
+  ENDMETHOD.
+ENDCLASS.

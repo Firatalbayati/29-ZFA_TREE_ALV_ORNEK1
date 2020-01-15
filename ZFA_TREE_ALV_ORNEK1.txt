@@ -1,0 +1,20 @@
+*&---------------------------------------------------------------------*
+*& Report  ZFA_TREE_ALV_ORNEK1
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT zfa_tree_alv_ornek1.
+
+INCLUDE zfa_tree_alv_ornek1_top.
+INCLUDE zfa_tree_alv_ornek1_scrn.
+INCLUDE zfa_tree_alv_ornek1_clss.
+INCLUDE zfa_tree_alv_ornek1_status_o01.
+INCLUDE zfa_tree_alv_ornek1_user_coi01.
+INCLUDE zfa_tree_alv_ornek1_kontrolo01.
+INCLUDE zfa_tree_alv_ornek1_dockingf01.
+
+START-OF-SELECTION.
+  CALL SCREEN 0100.

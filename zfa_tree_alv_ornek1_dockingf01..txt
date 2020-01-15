@@ -1,0 +1,281 @@
+*----------------------------------------------------------------------*
+***INCLUDE ZFA_TREE_ALV_ORNEK1_DOCKINGF01.
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Form  DOCKING_KAPAT_AC
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM docking_kapat_ac .
+
+  DATA: lv_visible TYPE c LENGTH 1.
+
+  " go_docking_container
+  " cl_gui_docking_container
+  " set_visible
+  CALL METHOD go_docking_container->set_visible  " 1 yap yani aç
+    EXPORTING
+      visible = lv_visible
+*  EXCEPTIONS
+*     cntl_error        = 1
+*     cntl_system_error = 2
+*     others  = 3
+    .
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+  cl_gui_cfw=>flush( ).
+
+
+
+  IF lv_visible = '1'.                           "eğer açıksa kapa
+    " go_docking_container
+    " cl_gui_docking_container
+    " set_visible
+    CALL METHOD go_docking_container->set_visible
+      EXPORTING
+        visible = '0'
+*  EXCEPTIONS
+*       cntl_error        = 1
+*       cntl_system_error = 2
+*       others  = 3
+      .
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+
+  ELSE.
+    " go_docking_container
+    " cl_gui_docking_container
+    " set_visible
+    CALL METHOD go_docking_container->set_visible
+      EXPORTING
+        visible = '1'
+*  EXCEPTIONS
+*       cntl_error        = 1
+*       cntl_system_error = 2
+*       others  = 3
+      .
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+    PERFORM tree_olustur.
+    PERFORM alv_olustur.
+
+  ENDIF.
+
+ENDFORM.                    " DOCKING_KAPAT_AC
+
+
+FORM tree_olustur .
+
+  DATA : ls_spfli LIKE LINE OF gt_spfli, "veya ls_spfli type spfli
+         lv_carrid TYPE spfli-carrid,
+         ls_node TYPE mtreesnode,
+         lt_events TYPE cntl_simple_events,
+         ls_event TYPE cntl_simple_event.
+  " go_spfki_tree
+  " cl_gui_simple_tree
+
+  CREATE OBJECT go_spfli_tree
+    EXPORTING
+*     lifetime            =
+      parent              = go_docking_container
+*     shellstyle          =
+      node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single
+*     hide_selection      =
+*     name                =
+*  EXCEPTIONS
+*     lifetime_error      = 1
+*     cntl_system_error   = 2
+*     create_error        = 3
+*     failed              = 4
+*     illegal_node_selection_mode = 5
+*     others              = 6
+    .
+  IF sy-subrc <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*            WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ENDIF.
+
+  CREATE OBJECT go_event_handler.
+  SET HANDLER go_event_handler->handle_node_double_click
+                     FOR go_spfli_tree.
+
+  SET HANDLER go_event_handler->handle_exp_no_children
+                   FOR go_spfli_tree.
+
+  SELECT * FROM spfli
+        INTO TABLE gt_spfli.
+
+  SORT gt_spfli BY carrid. "artan bir biçimde sıralar
+
+  LOOP AT gt_spfli INTO ls_spfli.
+    IF ls_spfli-carrid NE lv_carrid.
+      CLEAR ls_node.
+      ls_node-node_key = ls_spfli-carrid.
+      ls_node-relatkey = space.
+      ls_node-isfolder = abap_true.
+      ls_node-expander = abap_true.
+      ls_node-text = ls_spfli-carrid.
+      APPEND ls_node TO gt_nodes.
+      lv_carrid = ls_spfli-carrid.
+    ENDIF.
+
+    CLEAR :ls_node.
+    CONCATENATE ls_spfli-carrid
+                ls_spfli-connid
+                INTO ls_node-node_key
+                SEPARATED BY gc_separator.
+
+    ls_node-relatkey = ls_spfli-carrid.
+    ls_node-relatship = cl_gui_simple_tree=>relat_last_child.
+    ls_node-isfolder = space.
+    ls_node-expander = space.
+    ls_node-text = ls_spfli-connid.
+    APPEND ls_node TO gt_nodes.
+
+  ENDLOOP.
+  " go_spfki_tree
+  " cl_gui_simple_tree
+  " add_nodes
+  CALL METHOD go_spfli_tree->add_nodes
+    EXPORTING
+      table_structure_name = 'MTREEESNODE'
+      node_table           = gt_nodes
+*  EXCEPTIONS
+*     error_in_node_table  = 1
+*     failed               = 2
+*     dp_error             = 3
+*     table_structure_name_not_found = 4
+*     others               = 5
+    .
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+  ls_event-eventid = cl_gui_simple_tree=>eventid_node_double_click.
+  APPEND ls_event TO lt_events.
+
+  ls_event-eventid = cl_gui_simple_tree=>eventid_expand_no_children.
+  APPEND ls_event TO lt_events.
+
+
+
+  " go_spfki_tree
+  " cl_gui_simple_tree
+  " set_registered_events
+  CALL METHOD go_spfli_tree->set_registered_events
+    EXPORTING
+      events = lt_events
+*  EXCEPTIONS
+*     cntl_error                = 1
+*     cntl_system_error         = 2
+*     illegal_event_combination = 3
+*     others = 4
+    .
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+
+ENDFORM.                    " TREE_OLUSTUR
+
+
+
+FORM alv_olustur.
+
+  " go_costum_container
+  " cl_gui_custom_container
+  CREATE OBJECT go_custom_container
+    EXPORTING
+*     parent         =
+      container_name = 'ALV_AREA1'
+*     style          =
+*     lifetime       = lifetime_default
+*     repid          =
+*     dynnr          =
+*     no_autodef_progid_dynnr     =
+*  EXCEPTIONS
+*     cntl_error     = 1
+*     cntl_system_error           = 2
+*     create_error   = 3
+*     lifetime_error = 4
+*     lifetime_dynpro_dynpro_link = 5
+*     others         = 6
+    .
+  IF sy-subrc <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*            WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ENDIF.
+
+
+  " go_sflight_alv
+  " cl_gui_alv_grid
+
+  CREATE OBJECT go_sflight_alv
+    EXPORTING
+*     i_shellstyle      = 0
+*     i_lifetime        =
+      i_parent = go_custom_container
+*     i_appl_events     = space
+*     i_parentdbg       =
+*     i_applogparent    =
+*     i_graphicsparent  =
+*     i_name   =
+*     i_fcat_complete   = SPACE
+*    EXCEPTIONS
+*     error_cntl_create = 1
+*     error_cntl_init   = 2
+*     error_cntl_link   = 3
+*     error_dp_create   = 4
+*     others   = 5
+    .
+  IF sy-subrc <> 0.
+*   MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*              WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ENDIF.
+
+
+  " go_sflight_alv
+  " cl_gui_alv_grid
+  " set_table_for_first_display
+  CALL METHOD go_sflight_alv->set_table_for_first_display
+    EXPORTING
+*     i_buffer_active  =
+*     i_bypassing_buffer            =
+*     i_consistency_check           =
+      i_structure_name = 'SFLIGHT'
+*     is_variant       =
+*     i_save           =
+*     i_default        = 'X'
+*     is_layout        =
+*     is_print         =
+*     it_special_groups             =
+*     it_toolbar_excluding          =
+*     it_hyperlink     =
+*     it_alv_graphics  =
+*     it_except_qinfo  =
+*     ir_salv_adapter  =
+    CHANGING
+      it_outtab        = gt_sflight
+*     it_fieldcatalog  =
+*     it_sort          =
+*     it_filter        =
+*  EXCEPTIONS
+*     invalid_parameter_combination = 1
+*     program_error    = 2
+*     too_many_lines   = 3
+*     others           = 4
+    .
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+
+ENDFORM.

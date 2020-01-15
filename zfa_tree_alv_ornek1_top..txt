@@ -1,0 +1,16 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZFA_TREE_ALV_ORNEK1_TOP
+*&---------------------------------------------------------------------*
+CLASS : lcl_event_handler DEFINITION DEFERRED.
+
+CONSTANTS gc_separator TYPE c LENGTH 1 VALUE '/'.
+
+DATA : ok_code              TYPE sy-ucomm,
+       go_docking_container TYPE REF TO cl_gui_docking_container,
+       gt_nodes             TYPE TABLE OF mtreesnode,
+       go_spfli_tree        TYPE REF TO cl_gui_simple_tree,
+       gt_spfli             TYPE TABLE OF spfli,
+       gt_sflight           TYPE TABLE OF sflight,
+       go_sflight_alv       TYPE REF TO cl_gui_alv_grid,
+       go_custom_container  TYPE REF TO cl_gui_custom_container,
+       go_event_handler     TYPE REF TO lcl_event_handler.
